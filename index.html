@@ -316,6 +316,23 @@ input:focus,textarea:focus{outline:none;border-color:var(--maroon);box-shadow:0 
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1px solid rgba(194,145,58,.6);background:var(--paper);border-radius:999px;padding:9px 14px;cursor:pointer;font-size:.86rem;transition:all .2s}
 .chip[aria-pressed="true"]{background:var(--maroon);border-color:var(--maroon);color:var(--on-dark)}
+/* celebration picker: tick-box cards (clearer than filled pills) */
+.evhint{font-size:.82rem;font-style:italic;color:var(--muted);margin-top:-6px}
+.evopts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.evopts .chip{display:flex;align-items:center;gap:10px;text-align:left;border-radius:14px;padding:12px;border:1.5px solid rgba(123,98,83,.28);background:#fff;color:var(--muted);font-size:inherit;
+  -webkit-tap-highlight-color:transparent;transition:background .2s,border-color .2s,color .2s,box-shadow .2s,transform .15s}
+.evopts .chip:active{transform:scale(.97)}
+.evopts .chip .evt{display:grid;line-height:1.25;min-width:0}
+.evopts .chip b{font-family:var(--display);font-weight:400;font-size:1rem;letter-spacing:.03em}
+.evopts .chip small{font-size:.72rem;opacity:.85}
+.evopts .tick{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:1.5px solid rgba(123,98,83,.45);background:#fff;display:grid;place-items:center;transition:all .2s}
+.evopts .tick::after{content:"";width:6px;height:11px;margin-top:-2px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) scale(0);transition:transform .2s cubic-bezier(.3,1.6,.5,1)}
+.evopts .chip[aria-pressed="true"]{background:#fcefe7;border-color:var(--maroon);color:var(--maroon);box-shadow:0 6px 16px -10px rgba(125,18,32,.6)}
+.evopts .chip[aria-pressed="true"] .tick{background:var(--maroon);border-color:var(--maroon)}
+.evopts .chip[aria-pressed="true"] .tick::after{transform:rotate(45deg) scale(1)}
+.evopts .chip[aria-pressed="false"] b{text-decoration:none;opacity:.8}
+.evsum{font-size:.86rem;color:var(--leaf);text-align:center;margin-top:-2px}
+.evsum.none{color:var(--maroon)}
 .nav{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
 .nav .btn:not(.fill){color:var(--maroon)}
 .done{text-align:center;justify-items:center}
@@ -664,13 +681,15 @@ input:focus,textarea:focus{outline:none;border-color:var(--maroon);box-shadow:0 
         <h3>How many of you?</h3>
         <p class="qlabel">Guests, including you</p>
         <div class="counter"><button type="button" id="minus" aria-label="Fewer guests">−</button><output id="guests">2</output><button type="button" id="plus" aria-label="More guests">+</button></div>
-        <p class="qlabel">Which celebrations?</p>
-        <div class="chips" id="evChips">
-          <button class="chip" type="button" aria-pressed="true" data-v="Sangeet">Sangeet · 25</button>
-          <button class="chip" type="button" aria-pressed="true" data-v="Rituals">Rituals · 26</button>
-          <button class="chip" type="button" aria-pressed="true" data-v="Wedding">Wedding · 27</button>
-          <button class="chip" type="button" aria-pressed="true" data-v="Reception">Reception · 28</button>
+        <p class="qlabel">Which celebrations will you attend?</p>
+        <p class="evhint">Tap to tick or untick. Ticked ones are the ones you’re coming to.</p>
+        <div class="evopts" id="evChips" role="group" aria-label="Celebrations you will attend">
+          <button class="chip" type="button" aria-pressed="true" data-v="Sangeet"><span class="tick" aria-hidden="true"></span><span class="evt"><b>Sangeet</b><small>Wed · 25 Nov</small></span></button>
+          <button class="chip" type="button" aria-pressed="true" data-v="Rituals"><span class="tick" aria-hidden="true"></span><span class="evt"><b>Rituals</b><small>Thu · 26 Nov</small></span></button>
+          <button class="chip" type="button" aria-pressed="true" data-v="Wedding"><span class="tick" aria-hidden="true"></span><span class="evt"><b>Wedding</b><small>Fri · 27 Nov</small></span></button>
+          <button class="chip" type="button" aria-pressed="true" data-v="Reception"><span class="tick" aria-hidden="true"></span><span class="evt"><b>Reception</b><small>Sat · 28 Nov</small></span></button>
         </div>
+        <p class="evsum" id="evSum" aria-live="polite">You’re coming to all 4 celebrations</p>
         <div class="nav"><button class="btn" type="button" data-back>Back</button><button class="btn fill" type="button" data-next>Next</button></div>
       </div>
       <div class="step" data-step="4">
@@ -697,11 +716,6 @@ input:focus,textarea:focus{outline:none;border-color:var(--maroon);box-shadow:0 
     <p class="big" data-r>Spandan<i>weds</i>Mrishana</p>
     <div class="diyas" aria-hidden="true"><span class="diya"><span class="flame"><i></i><b></b></span></span><span class="diya"><span class="flame"><i></i><b></b></span></span><span class="diya"><span class="flame"><i></i><b></b></span></span><span class="diya"><span class="flame"><i></i><b></b></span></span><span class="diya"><span class="flame"><i></i><b></b></span></span></div>
     <p class="eyebrow" data-r><span class="nb">25 – 28 November 2026</span> · <span class="nb">Ahmedabad</span></p>
-    <div class="share" data-r>
-      <a class="btn" id="waShare" href="#" target="_blank" rel="noopener">Share on WhatsApp</a>
-      <button class="btn" id="copyLink" type="button">Copy link</button>
-    </div>
-    <p class="linkbox" id="linkBox" hidden></p>
     <p class="script" style="font-size:2.6rem;color:var(--gold-hi);margin-top:26px" data-r>Thank you</p>
     <p style="font-style:italic;color:var(--on-dark-muted)" data-r>for being part of our story</p>
     <p class="credit" id="musicCredit">Music: “Sitar and Tabla (Wedding)” by Royalty Free Background Music (smthing.in) · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></p>
@@ -921,11 +935,6 @@ bgm.addEventListener("playing",()=>musicUI(true)); bgm.addEventListener("pause",
 document.addEventListener("visibilitychange",()=>{ if(document.hidden){ if(!bgm.paused) bgm.pause(); } else if(wantMusic) tryPlay(); });
 addEventListener("pagehide",()=>{ if(!bgm.paused) bgm.pause(); });
 
-/* ---- share ---- */
-const link=()=>location.href.split("#")[0];
-$("#waShare").href="https://wa.me/?text="+encodeURIComponent("You're invited! Spandan & Mrishana's wedding celebrations, 25–28 November 2026, Ahmedabad. "+link());
-$("#copyLink").addEventListener("click",async e=>{ const box=$("#linkBox"); try{ await navigator.clipboard.writeText(link()); e.currentTarget.textContent="Link copied"; }catch(_){ box.textContent=link(); box.hidden=false; const r=document.createRange(); r.selectNodeContents(box); const s=getSelection(); s.removeAllRanges(); s.addRange(r);} });
-
 /* ---- storage: Google Sheet when self-hosted, Claude storage on the Claude link ---- */
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let store=null, shown=new Set();
@@ -982,13 +991,17 @@ function go(n){ step=n; steps.forEach(s=>s.classList.toggle("on",+s.dataset.step
 function next(){
   if(step===1){ if(!$("#rsvp-name").value.trim()){ setStatus("#rsvpStatus","Please add your name.",true); $("#rsvp-name").focus(); return; } go(2); return; }
   if(step===2){ if(!attending){ setStatus("#rsvpStatus","Please choose one.",true); return; } go(attending==="yes"?3:4); return; }
-  if(step===3){ go(4); }
+  if(step===3){ if(!evSummary()){ setStatus("#rsvpStatus","Please tick at least one celebration you’ll attend.",true); return; } go(4); }
 }
 form.addEventListener("click",e=>{ if(e.target.closest("[data-next]")) next(); if(e.target.closest("[data-back]")) go(step===4&&attending==="no"?2:step-1); });
 $$("[data-attend]").forEach(b=>b.addEventListener("click",()=>{ attending=b.dataset.attend; $$("[data-attend]").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); setTimeout(next,250); }));
 $("#minus").addEventListener("click",()=>{ guests=Math.max(1,guests-1); $("#guests").textContent=guests; });
 $("#plus").addEventListener("click",()=>{ guests=Math.min(15,guests+1); $("#guests").textContent=guests; });
-$$("#evChips .chip").forEach(c=>c.addEventListener("click",()=>c.setAttribute("aria-pressed",String(c.getAttribute("aria-pressed")!=="true"))));
+function evSummary(){ const on=$$('#evChips .chip[aria-pressed="true"]').map(c=>c.dataset.v), el=$("#evSum");
+  el.classList.toggle("none",!on.length);
+  el.textContent = !on.length ? "Please tick at least one celebration" : on.length===4 ? "You’re coming to all 4 celebrations" : "You’re coming to: "+on.join(", ");
+  return on.length; }
+$$("#evChips .chip").forEach(c=>c.addEventListener("click",()=>{ c.setAttribute("aria-pressed",String(c.getAttribute("aria-pressed")!=="true")); evSummary(); }));
 $("#rsvp-name").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); next(); } });
 form.addEventListener("submit",async e=>{ e.preventDefault(); if(step!==4) return;
   const name=$("#rsvp-name").value.trim();
@@ -997,7 +1010,7 @@ form.addEventListener("submit",async e=>{ e.preventDefault(); if(step!==4) retur
   const btn=form.querySelector('button[type=submit]'); btn.disabled=true;
   if(await save("rsvp",data,"#rsvpStatus")){ $("#doneTitle").textContent="Thank you, "+name.split(" ")[0]+"!"; $("#doneText").textContent=attending==="yes"?"We can’t wait to celebrate with you.":"We’ll miss you, and we’re grateful for your blessings."; go(5); const b=form.getBoundingClientRect(); burst(b.left+b.width/2,b.top+80,90); }
   btn.disabled=false; });
-$("#again").addEventListener("click",()=>{ form.reset(); attending=""; guests=2; $("#guests").textContent=2; $$("[data-attend]").forEach(x=>x.setAttribute("aria-pressed","false")); go(1); });
+$("#again").addEventListener("click",()=>{ form.reset(); attending=""; guests=2; $("#guests").textContent=2; $$("[data-attend]").forEach(x=>x.setAttribute("aria-pressed","false")); $$("#evChips .chip").forEach(c=>c.setAttribute("aria-pressed","true")); evSummary(); go(1); });
 </script>
 
 </body>

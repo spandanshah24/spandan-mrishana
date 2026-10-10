@@ -344,6 +344,8 @@ input:focus,textarea:focus{outline:none;border-color:var(--maroon);box-shadow:0 
 .diya:nth-child(2)::before{animation-delay:-.4s}.diya:nth-child(3)::before{animation-delay:-.9s}.diya:nth-child(4)::before{animation-delay:-1.2s}.diya:nth-child(5)::before{animation-delay:-.2s}
 @keyframes flick{0%,100%{transform:scale(1) rotate(-2deg)}30%{transform:scale(1.08,.94) rotate(2deg)}60%{transform:scale(.95,1.06) rotate(-1deg)}}
 .share{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px}
+.credit{margin-top:22px;font-size:.68rem;line-height:1.6;color:var(--on-dark-muted);opacity:.8;max-width:42ch;text-wrap:balance}
+.credit a{color:inherit}
 .linkbox{font-size:.8rem;color:var(--on-dark-muted);word-break:break-all;user-select:all}
 
 /* chrome: progress thread, music, tab bar */
@@ -712,6 +714,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--maroon);box-shadow:0 
     <p class="linkbox" id="linkBox" hidden></p>
     <p class="script" style="font-size:2.6rem;color:var(--gold-hi);margin-top:26px" data-r>Thank you</p>
     <p style="font-style:italic;color:var(--on-dark-muted)" data-r>for being part of our story</p>
+    <p class="credit" id="musicCredit" hidden>Music: Indian Wedding Instrumental Library by Royalty Free Background Music (smthing.in) · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></p>
   </div>
 </footer>
 </main>
@@ -728,7 +731,9 @@ input:focus,textarea:focus{outline:none;border-color:var(--maroon);box-shadow:0 
 <script>
 /* ===== Settings you can edit =====
    SHEET_URL: when you host this page yourself, paste your Google Apps Script web-app URL here. */
-const SHEET_URL = "";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbzCgWnmruDY-qlVx7m1HE1av1_KbRwNsyXVa5FPJio_hdKnSxTEmRqEWJYwvhGLG1Pc6w/exec";
+/* MUSIC_FILE: to use your own track, upload it to the repo next to index.html with this name. */
+const MUSIC_FILE = "music.mp3";
 
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -907,7 +912,12 @@ let bgmReady=false, wantMusic=false;
 function b64(){ return $("#bgm-data").textContent.trim(); }
 function prepMusic(){ if(bgmReady) return; try{ const bin=atob(b64()), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
   bgm.src=URL.createObjectURL(new Blob([u8],{type:"audio/mpeg"})); }catch(_){ bgm.src="data:audio/mpeg;base64,"+b64(); } bgmReady=true; }
-setTimeout(prepMusic,800);
+let musicChecked=!/^https?:/.test(location.protocol) || !!(window.claude&&window.claude.use);
+if(!musicChecked){
+  fetch(MUSIC_FILE,{method:"HEAD",cache:"no-store"}).then(r=>{ const ct=(r.headers.get("content-type")||"");
+    if(r.ok && /audio|mpeg|octet/.test(ct) && !bgmReady){ bgm.src=MUSIC_FILE; bgmReady=true; $("#musicCredit").hidden=false; } }).catch(()=>{}).finally(()=>{ musicChecked=true; });
+}
+setTimeout(()=>{ if(musicChecked) prepMusic(); else setTimeout(prepMusic,1500); },800);
 function musicUI(on){ musicBtn.classList.toggle("on",on); musicBtn.setAttribute("aria-pressed",String(on)); musicBtn.setAttribute("aria-label",on?"Pause music":"Play music"); }
 // iPhone-safe start: play() is called directly inside the guest's tap. If iOS still refuses
 // (WhatsApp/Instagram in-app browsers, Low Power Mode), the next tap anywhere starts it.
@@ -936,18 +946,41 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 let store=null, shown=new Set();
 function renderWishes(list){ const wall=$("#wall"); if(!list.length){ wall.innerHTML='<p class="empty">Blessings from family and friends will appear here. Be the first to leave one.</p>'; return; }
   wall.innerHTML=list.map(w=>{ const k=w.name+"|"+w.message; const isNew=shown.size&&!shown.has(k); shown.add(k); return '<div class="wish'+(isNew?' new':'')+'"><p>'+esc(w.message)+'</p><span>'+esc(w.name)+'</span></div>'; }).join(""); }
-const sheetStore=()=>({ async save(kind,data){ await fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({kind,...data})}); },
-  async listWishes(cb){ try{ const r=await fetch(SHEET_URL+"?kind=wishes"); const j=await r.json(); cb(Array.isArray(j)?j:[]); }catch(_){} } });
+// Google Sheet backend (see google-sheet-rsvp-script.gs). Plain-text POST = no CORS preflight;
+// Apps Script answers with JSON we can read, so "Thank you" only shows once the row is saved.
+const sheetStore=()=>({
+  async save(kind,data){
+    const body=JSON.stringify({kind,...data});
+    for(let attempt=1;attempt<=3;attempt++){
+      try{
+        const r=await fetch(SHEET_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body,redirect:"follow",cache:"no-store"});
+        const j=await r.json();
+        if(j&&j.ok) return;
+        throw Object.assign(new Error((j&&j.error)||"not saved"),{fatal:true});
+      }catch(e){
+        if(e.fatal) throw e;
+        if(attempt===3){ // response unreadable (rare network/CORS hiccup): send once more blind; the ref stops duplicates
+          await fetch(SHEET_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body}); return; }
+        await new Promise(r=>setTimeout(r,700*attempt));
+      }
+    }
+  },
+  async listWishes(cb){ const load=async()=>{ try{ const r=await fetch(SHEET_URL+"?kind=wishes&t="+Date.now(),{cache:"no-store"}); const j=await r.json(); if(Array.isArray(j)) cb(j); }catch(_){} };
+    await load(); setInterval(()=>{ if(!document.hidden) load(); },90000); this.reload=load; }
+});
 async function claudeStore(){ if(!window.claude||!window.claude.use) return null; const db=await window.claude.use("db"); if(!db) return null;
   let canWrite=null; try{ const u=await window.claude.use("user"); canWrite=u?await u.can("data.write"):null; }catch(_){}
   return { canWrite, async save(kind,data){ await db.collection(kind==="wish"?"wishes":"rsvps").add(data); },
     listWishes(cb){ db.collection("wishes").orderBy("at","desc").limit(60).onSnapshot(s=>cb(s.docs.map(d=>d.data())),()=>{}); } }; }
-(async()=>{ if(SHEET_URL) store=sheetStore(); else { try{ store=await claudeStore(); }catch(_){ store=null; } } if(store) store.listWishes(renderWishes); })();
+const onClaude=!!(window.claude&&window.claude.use);
+(async()=>{ if(SHEET_URL && !onClaude) store=sheetStore(); else { try{ store=await claudeStore(); }catch(_){ store=null; } } if(store) store.listWishes(renderWishes); })();
 function setStatus(id,msg,err){ const el=$(id); el.textContent=msg; el.classList.toggle("err",!!err); }
 async function save(kind,data,statusId){
   if(!store){ setStatus(statusId,"Responses open once the invitation is live on our website. Please message the family directly for now.",true); return false; }
   if(store.canWrite===false){ setStatus(statusId,"This preview link can't save responses. Please use the invitation link the family shared with you.",true); return false; }
-  try{ await store.save(kind,{...data,at:new Date().toISOString()}); setStatus(statusId,""); return true; }
+  setStatus(statusId,"Sending…");
+  const ref=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  try{ await store.save(kind,{...data,ref,at:new Date().toISOString()}); setStatus(statusId,""); return true; }
   catch(_){ setStatus(statusId,"That didn't go through. Please check your connection and try again.",true); return false; } }
 
 /* wishes */
@@ -955,7 +988,7 @@ $("#wishForm").addEventListener("submit",async e=>{ e.preventDefault(); const na
   if(!name||!message){ setStatus("#wishStatus","Please add your name and a few words.",true); return; }
   const btn=e.target.querySelector("button"); btn.disabled=true;
   if(await save("wish",{name,message},"#wishStatus")){ const b=btn.getBoundingClientRect(); const f=document.createElementNS("http://www.w3.org/2000/svg","svg"); f.setAttribute("class","floaty"); f.style.left=(b.left+b.width/2-23)+"px"; f.style.top=(b.top-30)+"px"; f.style.color="#d23a6a"; f.innerHTML='<use href="#i-lotus"/>'; document.body.appendChild(f); setTimeout(()=>f.remove(),2500);
-    setStatus("#wishStatus","Thank you. Your blessing is on its way."); e.target.reset(); if(SHEET_URL) store.listWishes(renderWishes); }
+    setStatus("#wishStatus","Thank you. Your blessing has been received."); e.target.reset(); if(store.reload) store.reload(); }
   btn.disabled=false; });
 
 /* rsvp stepper */

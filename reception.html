@@ -264,8 +264,12 @@ button{font:inherit;color:inherit}
 .c-reception h3{color:var(--gold-hi)}
 .c-reception .btn{color:var(--gold-hi)}
 .lights{position:absolute;top:0;left:0;width:100%;height:70px;pointer-events:none}
-.lights path{fill:none;stroke:rgba(236,208,139,.35);stroke-width:1}
-.lights circle{fill:#fff1b8;filter:drop-shadow(0 0 4px #ffd36b);animation:twinkle 2.2s ease-in-out infinite}
+.lights path{fill:none;stroke:rgba(236,208,139,.45);stroke-width:1.2}
+.lights .cap{fill:#b9965a}
+.lights .glow{fill:url(#lightGlow)}
+.lights .bulb{fill:#fff6cf}
+.lights g.b{animation:bulb 3s ease-in-out infinite}
+@keyframes bulb{0%,100%{opacity:1}50%{opacity:.72}}
 
 /* know */
 .know-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:26px}
@@ -542,7 +546,7 @@ input:focus,textarea:focus{outline:none;border-color:var(--maroon);box-shadow:0 
 
       <article class="ev" id="ev-reception" data-r>
         <div class="card c-reception" data-tilt>
-          <svg class="lights" viewBox="0 0 400 70" preserveAspectRatio="none" aria-hidden="true" id="lights"></svg>
+          <svg class="lights" aria-hidden="true" id="lights"></svg>
           <p class="daylbl">Saturday · 28 November</p>
           <h3>Reception</h3>
           <p class="tag">Shower your blessings on the newlyweds</p>
@@ -775,7 +779,17 @@ if("IntersectionObserver" in window){
 /* ---- decorations: sparkles, toran, fairy lights ---- */
 const sp=$(".c-sangeet .sparkles"); if(sp) for(let i=0;i<22;i++){ const s=document.createElement("i"); s.className="sparkle"; s.style.left=Math.random()*100+"%"; s.style.top=(Math.random()*100)+"%"; s.style.animationDelay=(-Math.random()*3)+"s"; sp.appendChild(s); }
 const toran=$("#toran"); if(toran) for(let i=0;i<15;i++){ const st=document.createElement("span"); st.className="strand"; st.style.setProperty("--dl",(-i*.27)+"s"); const len=4+((i%3===1)?2:(i%2)); st.innerHTML="<i></i>".repeat(len)+"<em></em>"; toran.appendChild(st); }
-(function(){ const svg=$("#lights"); if(!svg) return; let path="M0 8"; let dots=""; for(let i=0;i<=8;i++){ const x=i*50; path+=` Q${x-25} 46 ${x} 8`; } for(let i=0;i<8;i++){ for(let k=1;k<=4;k++){ const t=k/5, x0=i*50, xm=x0+25, x1=x0+50; const x=(1-t)*(1-t)*x0+2*(1-t)*t*xm+t*t*x1; const y=(1-t)*(1-t)*8+2*(1-t)*t*46+t*t*8; dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.2" style="animation-delay:${(-Math.random()*2).toFixed(2)}s"/>`; } } svg.innerHTML=`<path d="${path}"/>`+dots; })();
+(function(){ const svg=$("#lights"); if(!svg) return; const NS="http://www.w3.org/2000/svg"; let lastW=0;
+  function draw(){ const W=Math.round(svg.getBoundingClientRect().width); if(!W||W===lastW) return; lastW=W; const H=70, top=6, sag=26;
+    svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+    const n=Math.max(3,Math.round(W/120)), span=W/n; let d=`M0 ${top}`, bulbs="";
+    for(let s=0;s<n;s++){ const x0=s*span, x1=x0+span, xm=x0+span/2; d+=` Q${xm.toFixed(1)} ${top+sag*2} ${x1.toFixed(1)} ${top}`;
+      for(let k=1;k<=4;k++){ const u=k/5, x=(1-u)*(1-u)*x0+2*(1-u)*u*xm+u*u*x1, y=top+2*(1-u)*u*sag*2;
+        const delay=(-((s*4+k)*0.37)%3).toFixed(2);
+        bulbs+=`<g class="b" style="animation-delay:${delay}s" transform="translate(${x.toFixed(1)} ${(y+1).toFixed(1)})"><circle class="glow" cy="2.6" r="10"/><rect class="cap" x="-1.6" y="-2.2" width="3.2" height="2.4" rx=".6"/><circle class="bulb" cy="2.6" r="2.6"/></g>`; } }
+    svg.innerHTML=`<defs><radialGradient id="lightGlow"><stop offset="0" stop-color="#ffe7a0" stop-opacity=".85"/><stop offset=".45" stop-color="#ffd27a" stop-opacity=".35"/><stop offset="1" stop-color="#ffc861" stop-opacity="0"/></radialGradient></defs><path d="${d}"/>`+bulbs; }
+  draw(); if(window.ResizeObserver) new ResizeObserver(draw).observe(svg); else addEventListener("resize",draw);
+})();
 
 /* ---- story dots ---- */
 const rail=$("#storyRail"), dots=$$("#storyDots i");
